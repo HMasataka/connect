@@ -1,0 +1,12 @@
+{
+  "selectors": {
+    "nav": ".nav-item",
+    "toolbar": ".toolbar-btn",
+    "activeClass": "active"
+  },
+  "mapping": {
+    "Page 1": "page1",
+    "Page 2": "page2"
+  },
+  "ignore": ["ignored"]
+}

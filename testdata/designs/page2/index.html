@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Page 2</title>
+</head>
+<body>
+    <nav>
+        <div class="nav-item">Page 1</div>
+        <div class="nav-item active">Page 2</div>
+    </nav>
+<script data-connect>
+(function() {
+  var pages = ["page1","page2"];
+  var sel = {"activeClass":"active","modalClose":".modal-close","modalCloseText":".modal-footer .btn-secondary","nav":".nav-item","toolbar":".toolbar-btn"};
+  var customMapping = {"Page 1":"page1","Page 2":"page2"};
+  var toolbarMapping = {};
+
+  function toPageId(text) {
+    return text.trim().toLowerCase().replace(/\s+/g, '-');
+  }
+
+  function resolve(text, map) {
+    if (map[text]) return map[text];
+    return toPageId(text);
+  }
+
+  function navigate(pageId) {
+    if (pages.indexOf(pageId) !== -1) {
+      location.href = '../' + pageId + '/index.html';
+    }
+  }
+
+  // サイドバー
+  document.querySelectorAll(sel.nav).forEach(function(item) {
+    if (item.classList.contains(sel.activeClass)) return;
+    var text = item.textContent.replace(/\d+/g, '');
+    var pageId = resolve(text, customMapping);
+    if (pages.indexOf(pageId) !== -1) {
+      item.style.cursor = 'pointer';
+      item.addEventListener('click', function() { navigate(pageId); });
+    }
+  });
+
+  // ツールバー
+  document.querySelectorAll(sel.toolbar).forEach(function(btn) {
+    var text = btn.textContent.trim();
+    var pageId = resolve(text, toolbarMapping);
+    if (pages.indexOf(pageId) !== -1) {
+      btn.addEventListener('click', function() { navigate(pageId); });
+    }
+  });
+
+  // モーダル閉じる
+  if (sel.modalClose) {
+    document.querySelectorAll(sel.modalClose).forEach(function(btn) {
+      btn.style.cursor = 'pointer';
+      btn.addEventListener('click', function() { history.back(); });
+    });
+  }
+  if (sel.modalCloseText) {
+    document.querySelectorAll(sel.modalCloseText).forEach(function(btn) {
+      if (btn.textContent.trim() === 'Close') {
+        btn.style.cursor = 'pointer';
+        btn.addEventListener('click', function() { history.back(); });
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>
