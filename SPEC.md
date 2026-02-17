@@ -196,13 +196,13 @@ Tags等のモーダルページでは:
 
 `selectors` でナビゲーション要素のCSSセレクタを指定できる。これにより、異なるHTML構造を持つデザインでもconnectを利用できる。
 
-| キー | デフォルト値 | 説明 |
-|------|------------|------|
-| `nav` | `.nav-item` | サイドバーのナビゲーション項目 |
-| `toolbar` | `.toolbar-btn` | ツールバーのボタン |
-| `activeClass` | `active` | 現在のページを示すクラス名 |
-| `modalClose` | `.modal-close` | モーダルの×ボタン |
-| `modalCloseText` | `.modal-footer .btn-secondary` | モーダルのCloseテキストボタン |
+| キー             | デフォルト値                   | 説明                           |
+| ---------------- | ------------------------------ | ------------------------------ |
+| `nav`            | `.nav-item`                    | サイドバーのナビゲーション項目 |
+| `toolbar`        | `.toolbar-btn`                 | ツールバーのボタン             |
+| `activeClass`    | `active`                       | 現在のページを示すクラス名     |
+| `modalClose`     | `.modal-close`                 | モーダルの×ボタン              |
+| `modalCloseText` | `.modal-footer .btn-secondary` | モーダルのCloseテキストボタン  |
 
 例えば `<nav>` 内の `<li>` でナビゲーションするデザインの場合:
 
@@ -223,8 +223,8 @@ Tags等のモーダルページでは:
 マッピングは `pages` 配列の生成には影響しない。スクリプト内の `toPageId` 変換を補助するために、注入スクリプト内に追加のマッピングテーブルとして埋め込まれる:
 
 ```javascript
-var customMapping = {"Stash":"stash","Search":"search"};
-var toolbarMapping = {"Tags":"tags","Settings":"settings"};
+var customMapping = { Stash: "stash", Search: "search" };
+var toolbarMapping = { Tags: "tags", Settings: "settings" };
 ```
 
 設定ファイルが存在しない場合は、テキストの自動変換のみで動作する。
