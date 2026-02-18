@@ -7,39 +7,41 @@ import (
 )
 
 type Config struct {
-	Selectors Selectors                    `json:"selectors"`
-	Mapping   map[string]string            `json:"mapping"`
-	Toolbar   map[string]string            `json:"toolbar"`
-	Custom    map[string]map[string]string `json:"custom"`
-	Ignore    []string                     `json:"ignore"`
+	Links  []LinkRule  `json:"links"`
+	Modals []string    `json:"modals"`
+	Close  []CloseRule `json:"close"`
+	Ignore []string    `json:"ignore"`
 }
 
-type Selectors struct {
-	Nav            string `json:"nav"`
-	Toolbar        string `json:"toolbar"`
-	ActiveClass    string `json:"activeClass"`
-	ModalClose     string `json:"modalClose"`
-	ModalCloseText string `json:"modalCloseText"`
+type LinkRule struct {
+	Selector string            `json:"selector"`
+	Match    string            `json:"match"`
+	Mapping  map[string]string `json:"mapping"`
+	Target   string            `json:"target"`
 }
 
-func DefaultSelectors() Selectors {
-	return Selectors{
-		Nav:            ".nav-item",
-		Toolbar:        ".toolbar-btn",
-		ActiveClass:    "active",
-		ModalClose:     ".modal-close",
-		ModalCloseText: ".modal-footer .btn-secondary",
+type CloseRule struct {
+	Selector string `json:"selector"`
+	Match    string `json:"match"`
+	Value    string `json:"value"`
+}
+
+func (c *CloseRule) UnmarshalJSON(data []byte) error {
+	var str string
+	if err := json.Unmarshal(data, &str); err == nil {
+		c.Selector = str
+		c.Match = ""
+		c.Value = ""
+		return nil
 	}
-}
 
-func DefaultConfig() Config {
-	return Config{
-		Selectors: DefaultSelectors(),
-		Mapping:   make(map[string]string),
-		Toolbar:   make(map[string]string),
-		Custom:    make(map[string]map[string]string),
-		Ignore:    []string{},
+	type closeRuleAlias CloseRule
+	var alias closeRuleAlias
+	if err := json.Unmarshal(data, &alias); err != nil {
+		return err
 	}
+	*c = CloseRule(alias)
+	return nil
 }
 
 func ConfigPath(designsDir string) string {
@@ -47,7 +49,12 @@ func ConfigPath(designsDir string) string {
 }
 
 func LoadConfig(configPath string) (Config, error) {
-	cfg := DefaultConfig()
+	cfg := Config{
+		Links:  []LinkRule{},
+		Modals: []string{},
+		Close:  []CloseRule{},
+		Ignore: []string{},
+	}
 
 	data, err := os.ReadFile(configPath)
 	if err != nil {
@@ -57,37 +64,21 @@ func LoadConfig(configPath string) (Config, error) {
 		return cfg, err
 	}
 
-	var fileCfg Config
-	if err := json.Unmarshal(data, &fileCfg); err != nil {
+	if err := json.Unmarshal(data, &cfg); err != nil {
 		return cfg, err
 	}
 
-	if fileCfg.Selectors.Nav != "" {
-		cfg.Selectors.Nav = fileCfg.Selectors.Nav
+	if cfg.Links == nil {
+		cfg.Links = []LinkRule{}
 	}
-	if fileCfg.Selectors.Toolbar != "" {
-		cfg.Selectors.Toolbar = fileCfg.Selectors.Toolbar
+	if cfg.Modals == nil {
+		cfg.Modals = []string{}
 	}
-	if fileCfg.Selectors.ActiveClass != "" {
-		cfg.Selectors.ActiveClass = fileCfg.Selectors.ActiveClass
+	if cfg.Close == nil {
+		cfg.Close = []CloseRule{}
 	}
-	if fileCfg.Selectors.ModalClose != "" {
-		cfg.Selectors.ModalClose = fileCfg.Selectors.ModalClose
-	}
-	if fileCfg.Selectors.ModalCloseText != "" {
-		cfg.Selectors.ModalCloseText = fileCfg.Selectors.ModalCloseText
-	}
-	if fileCfg.Mapping != nil {
-		cfg.Mapping = fileCfg.Mapping
-	}
-	if fileCfg.Toolbar != nil {
-		cfg.Toolbar = fileCfg.Toolbar
-	}
-	if fileCfg.Custom != nil {
-		cfg.Custom = fileCfg.Custom
-	}
-	if fileCfg.Ignore != nil {
-		cfg.Ignore = fileCfg.Ignore
+	if cfg.Ignore == nil {
+		cfg.Ignore = []string{}
 	}
 
 	return cfg, nil

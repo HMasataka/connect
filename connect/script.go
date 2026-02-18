@@ -3,23 +3,36 @@ package connect
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 )
 
 const scriptTemplate = `<script data-connect>
 (function() {
   var pages = %s;
-  var sel = %s;
-  var customMapping = %s;
-  var toolbarMapping = %s;
-  var customSelectors = %s;
+  var modals = %s;
+  var links = %s;
+  var close = %s;
+
+  // 現在のページを取得
+  var currentPage = location.pathname.split('/').slice(-2)[0];
+
+  // 非モーダルページなら記録
+  if (modals.indexOf(currentPage) === -1) {
+    sessionStorage.setItem('connect-last-page', currentPage);
+  }
 
   function toPageId(text) {
     return text.trim().toLowerCase().replace(/\s+/g, '-');
   }
 
-  function resolve(text, map) {
-    if (map[text]) return map[text];
+  function getText(el, match) {
+    if (match === 'title') return el.getAttribute('title') || '';
+    if (match === 'auto') return el.textContent.trim() || el.getAttribute('title') || '';
+    return el.textContent.trim();
+  }
+
+  function resolve(text, mapping, target) {
+    if (target) return target;
+    if (mapping && mapping[text]) return mapping[text];
     return toPageId(text);
   }
 
@@ -29,96 +42,100 @@ const scriptTemplate = `<script data-connect>
     }
   }
 
-  // サイドバー
-  document.querySelectorAll(sel.nav).forEach(function(item) {
-    if (item.classList.contains(sel.activeClass)) return;
-    var text = item.textContent.replace(/\d+/g, '');
-    var pageId = resolve(text, customMapping);
-    if (pages.indexOf(pageId) !== -1) {
-      item.style.cursor = 'pointer';
-      item.addEventListener('click', function() { navigate(pageId); });
-    }
-  });
+  function closeModal() {
+    var lastPage = sessionStorage.getItem('connect-last-page') || pages[0];
+    location.href = '../' + lastPage + '/index.html';
+  }
 
-  // ツールバー
-  document.querySelectorAll(sel.toolbar).forEach(function(btn) {
-    var text = btn.textContent.trim();
-    var pageId = resolve(text, toolbarMapping);
-    if (pages.indexOf(pageId) !== -1) {
-      btn.addEventListener('click', function() { navigate(pageId); });
-    }
-  });
-
-  // カスタムセレクタ
-  Object.keys(customSelectors).forEach(function(selector) {
-    var mapping = customSelectors[selector];
-    document.querySelectorAll(selector).forEach(function(el) {
-      var text = el.textContent.trim();
-      if (!text) text = el.getAttribute('title') || '';
-      var pageId = resolve(text, mapping);
+  // リンク
+  links.forEach(function(rule) {
+    document.querySelectorAll(rule.selector).forEach(function(el) {
+      var text = getText(el, rule.match || 'text');
+      var pageId = resolve(text, rule.mapping, rule.target);
       if (pages.indexOf(pageId) !== -1) {
         el.style.cursor = 'pointer';
-        el.addEventListener('click', function() { navigate(pageId); });
+        el.addEventListener('click', function(e) {
+          e.preventDefault();
+          navigate(pageId);
+        });
       }
     });
   });
 
-  // モーダル閉じる
-  if (sel.modalClose) {
-    document.querySelectorAll(sel.modalClose).forEach(function(btn) {
-      btn.style.cursor = 'pointer';
-      btn.addEventListener('click', function() { history.back(); });
-    });
-  }
-  if (sel.modalCloseText) {
-    document.querySelectorAll(sel.modalCloseText).forEach(function(btn) {
-      if (btn.textContent.trim() === 'Close') {
-        btn.style.cursor = 'pointer';
-        btn.addEventListener('click', function() { history.back(); });
+  // 閉じる
+  close.forEach(function(rule) {
+    document.querySelectorAll(rule.selector).forEach(function(el) {
+      if (rule.value) {
+        var actual = rule.match === 'title' ? el.getAttribute('title') : el.textContent.trim();
+        if (actual !== rule.value) return;
       }
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', function(e) {
+        e.preventDefault();
+        closeModal();
+      });
     });
-  }
+  });
 })();
 </script>`
 
-func GenerateScript(pages []string, selectors Selectors, mapping, toolbar map[string]string, custom map[string]map[string]string) string {
-	pagesJSON := toJSONArray(pages)
-	selectorsJSON := toSelectorsJSON(selectors)
-	mappingJSON := toJSONObject(mapping)
-	toolbarJSON := toJSONObject(toolbar)
-	customJSON := toCustomJSON(custom)
-
-	return fmt.Sprintf(scriptTemplate, pagesJSON, selectorsJSON, mappingJSON, toolbarJSON, customJSON)
+type jsLinkRule struct {
+	Selector string            `json:"selector"`
+	Match    string            `json:"match"`
+	Mapping  map[string]string `json:"mapping"`
+	Target   *string           `json:"target"`
 }
 
-func toJSONArray(items []string) string {
-	data, _ := json.Marshal(items)
+type jsCloseRule struct {
+	Selector string  `json:"selector"`
+	Match    *string `json:"match"`
+	Value    *string `json:"value"`
+}
+
+func GenerateScript(pages []string, cfg Config) string {
+	pagesJSON := toJSON(pages)
+	modalsJSON := toJSON(cfg.Modals)
+	linksJSON := linksToJSON(cfg.Links)
+	closeJSON := closeToJSON(cfg.Close)
+
+	return fmt.Sprintf(scriptTemplate, pagesJSON, modalsJSON, linksJSON, closeJSON)
+}
+
+func toJSON(v any) string {
+	data, _ := json.Marshal(v)
 	return string(data)
 }
 
-func toJSONObject(m map[string]string) string {
-	if len(m) == 0 {
-		return "{}"
+func linksToJSON(links []LinkRule) string {
+	jsRules := make([]jsLinkRule, len(links))
+	for i, link := range links {
+		jsRules[i] = jsLinkRule{
+			Selector: link.Selector,
+			Match:    link.Match,
+			Mapping:  link.Mapping,
+		}
+		if link.Target != "" {
+			target := link.Target
+			jsRules[i].Target = &target
+		}
 	}
-	data, _ := json.Marshal(m)
-	return string(data)
+	return toJSON(jsRules)
 }
 
-func toCustomJSON(m map[string]map[string]string) string {
-	if len(m) == 0 {
-		return "{}"
+func closeToJSON(closes []CloseRule) string {
+	jsRules := make([]jsCloseRule, len(closes))
+	for i, c := range closes {
+		jsRules[i] = jsCloseRule{
+			Selector: c.Selector,
+		}
+		if c.Match != "" {
+			match := c.Match
+			jsRules[i].Match = &match
+		}
+		if c.Value != "" {
+			value := c.Value
+			jsRules[i].Value = &value
+		}
 	}
-	data, _ := json.Marshal(m)
-	return string(data)
-}
-
-func toSelectorsJSON(s Selectors) string {
-	parts := []string{
-		fmt.Sprintf(`"nav":"%s"`, s.Nav),
-		fmt.Sprintf(`"toolbar":"%s"`, s.Toolbar),
-		fmt.Sprintf(`"activeClass":"%s"`, s.ActiveClass),
-		fmt.Sprintf(`"modalClose":"%s"`, s.ModalClose),
-		fmt.Sprintf(`"modalCloseText":"%s"`, s.ModalCloseText),
-	}
-	return "{" + strings.Join(parts, ",") + "}"
+	return toJSON(jsRules)
 }

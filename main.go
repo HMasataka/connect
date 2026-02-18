@@ -13,7 +13,6 @@ import (
 
 func main() {
 	var (
-		inPlace bool
 		outDir  string
 		clean   bool
 		config  string
@@ -22,7 +21,6 @@ func main() {
 		help    bool
 	)
 
-	flag.BoolVar(&inPlace, "in-place", true, "元ファイルに直接注入する")
 	flag.StringVar(&outDir, "out-dir", "", "コピーを作成してそちらに注入する")
 	flag.BoolVar(&clean, "clean", false, "注入済みスクリプトを除去する")
 	flag.StringVar(&config, "config", "", "設定ファイルのパス")
@@ -56,7 +54,6 @@ Arguments:
   designs-dir          デザインディレクトリのパス
 
 Options:
-  --in-place           元ファイルに直接注入する（デフォルト）
   --out-dir <path>     コピーを作成してそちらに注入する
   --clean              注入済みスクリプトを除去する
   --config <path>      設定ファイルのパス（デフォルト: <designs-dir>/connect.json）
@@ -95,7 +92,7 @@ func run(designsDir, outDir, configPath string, clean, dryRun, verbose bool) err
 		targetDir = outDir
 	}
 
-	script := connect.GenerateScript(pages, cfg.Selectors, cfg.Mapping, cfg.Toolbar, cfg.Custom)
+	script := connect.GenerateScript(pages, cfg)
 
 	var processed int
 	for _, page := range pages {
