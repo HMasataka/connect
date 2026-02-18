@@ -12,6 +12,7 @@ const scriptTemplate = `<script data-connect>
   var sel = %s;
   var customMapping = %s;
   var toolbarMapping = %s;
+  var customSelectors = %s;
 
   function toPageId(text) {
     return text.trim().toLowerCase().replace(/\s+/g, '-');
@@ -48,6 +49,20 @@ const scriptTemplate = `<script data-connect>
     }
   });
 
+  // カスタムセレクタ
+  Object.keys(customSelectors).forEach(function(selector) {
+    var mapping = customSelectors[selector];
+    document.querySelectorAll(selector).forEach(function(el) {
+      var text = el.textContent.trim();
+      if (!text) text = el.getAttribute('title') || '';
+      var pageId = resolve(text, mapping);
+      if (pages.indexOf(pageId) !== -1) {
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', function() { navigate(pageId); });
+      }
+    });
+  });
+
   // モーダル閉じる
   if (sel.modalClose) {
     document.querySelectorAll(sel.modalClose).forEach(function(btn) {
@@ -66,13 +81,14 @@ const scriptTemplate = `<script data-connect>
 })();
 </script>`
 
-func GenerateScript(pages []string, selectors Selectors, mapping, toolbar map[string]string) string {
+func GenerateScript(pages []string, selectors Selectors, mapping, toolbar map[string]string, custom map[string]map[string]string) string {
 	pagesJSON := toJSONArray(pages)
 	selectorsJSON := toSelectorsJSON(selectors)
 	mappingJSON := toJSONObject(mapping)
 	toolbarJSON := toJSONObject(toolbar)
+	customJSON := toCustomJSON(custom)
 
-	return fmt.Sprintf(scriptTemplate, pagesJSON, selectorsJSON, mappingJSON, toolbarJSON)
+	return fmt.Sprintf(scriptTemplate, pagesJSON, selectorsJSON, mappingJSON, toolbarJSON, customJSON)
 }
 
 func toJSONArray(items []string) string {
@@ -81,6 +97,14 @@ func toJSONArray(items []string) string {
 }
 
 func toJSONObject(m map[string]string) string {
+	if len(m) == 0 {
+		return "{}"
+	}
+	data, _ := json.Marshal(m)
+	return string(data)
+}
+
+func toCustomJSON(m map[string]map[string]string) string {
 	if len(m) == 0 {
 		return "{}"
 	}

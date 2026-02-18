@@ -7,10 +7,11 @@ import (
 )
 
 type Config struct {
-	Selectors Selectors         `json:"selectors"`
-	Mapping   map[string]string `json:"mapping"`
-	Toolbar   map[string]string `json:"toolbar"`
-	Ignore    []string          `json:"ignore"`
+	Selectors Selectors                    `json:"selectors"`
+	Mapping   map[string]string            `json:"mapping"`
+	Toolbar   map[string]string            `json:"toolbar"`
+	Custom    map[string]map[string]string `json:"custom"`
+	Ignore    []string                     `json:"ignore"`
 }
 
 type Selectors struct {
@@ -36,6 +37,7 @@ func DefaultConfig() Config {
 		Selectors: DefaultSelectors(),
 		Mapping:   make(map[string]string),
 		Toolbar:   make(map[string]string),
+		Custom:    make(map[string]map[string]string),
 		Ignore:    []string{},
 	}
 }
@@ -80,6 +82,9 @@ func LoadConfig(configPath string) (Config, error) {
 	}
 	if fileCfg.Toolbar != nil {
 		cfg.Toolbar = fileCfg.Toolbar
+	}
+	if fileCfg.Custom != nil {
+		cfg.Custom = fileCfg.Custom
 	}
 	if fileCfg.Ignore != nil {
 		cfg.Ignore = fileCfg.Ignore

@@ -95,7 +95,7 @@ func run(designsDir, outDir, configPath string, clean, dryRun, verbose bool) err
 		targetDir = outDir
 	}
 
-	script := connect.GenerateScript(pages, cfg.Selectors, cfg.Mapping, cfg.Toolbar)
+	script := connect.GenerateScript(pages, cfg.Selectors, cfg.Mapping, cfg.Toolbar, cfg.Custom)
 
 	var processed int
 	for _, page := range pages {
