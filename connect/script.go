@@ -20,14 +20,23 @@ const scriptTemplate = `<script data-connect>
     sessionStorage.setItem('connect-last-page', currentPage);
   }
 
+  var TEXT_NODE = 3;
+
   function toPageId(text) {
     return text.trim().toLowerCase().replace(/\s+/g, '-');
   }
 
+  function getDirectText(el) {
+    return Array.from(el.childNodes)
+      .filter(function(n) { return n.nodeType === TEXT_NODE; })
+      .map(function(n) { return n.textContent; })
+      .join('').trim();
+  }
+
   function getText(el, match) {
     if (match === 'title') return el.getAttribute('title') || '';
-    if (match === 'auto') return el.textContent.trim() || el.getAttribute('title') || '';
-    return el.textContent.trim();
+    if (match === 'auto') return getDirectText(el) || el.getAttribute('title') || '';
+    return getDirectText(el);
   }
 
   function resolve(text, mapping, target) {
