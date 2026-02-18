@@ -26,14 +26,13 @@ connect --dry-run --verbose ./designs
 
 ## オプション
 
-| オプション | 説明 |
-|------------|------|
-| `--in-place` | 元ファイルに直接注入（デフォルト） |
-| `--out-dir <path>` | コピー先に注入 |
-| `--clean` | スクリプトを除去 |
-| `--config <path>` | 設定ファイルを指定 |
-| `--dry-run` | 実行内容を表示のみ |
-| `--verbose` | 詳細表示 |
+| オプション         | 説明               |
+| ------------------ | ------------------ |
+| `--out-dir <path>` | コピー先に注入     |
+| `--clean`          | スクリプトを除去   |
+| `--config <path>`  | 設定ファイルを指定 |
+| `--dry-run`        | 実行内容を表示のみ |
+| `--verbose`        | 詳細表示           |
 
 ## 設定ファイル
 
@@ -41,32 +40,60 @@ connect --dry-run --verbose ./designs
 
 ```json
 {
-  "selectors": {
-    "nav": ".nav-item",
-    "toolbar": ".toolbar-btn",
-    "activeClass": "active",
-    "modalClose": ".modal-close",
-    "modalCloseText": ".modal-footer .btn-secondary"
-  },
-  "mapping": {
-    "Stash": "stash"
-  },
-  "toolbar": {
-    "Tags": "tags"
-  },
+  "links": [
+    {
+      "selector": ".nav-item:not(.active)",
+      "mapping": { "Stash": "stash" }
+    },
+    {
+      "selector": ".toolbar-btn",
+      "mapping": { "Tags": "tags", "AI": "ai-assist" }
+    },
+    {
+      "selector": ".titlebar-btn[title='Settings']",
+      "match": "title",
+      "target": "settings-appearance"
+    }
+  ],
+  "modals": ["tags", "branches-dialog"],
+  "close": [
+    ".modal-close",
+    { "selector": ".btn-secondary", "match": "text", "value": "Close" }
+  ],
   "ignore": ["mockup"]
 }
 ```
 
-| フィールド | 説明 |
-|------------|------|
-| `selectors` | ナビゲーション要素のCSSセレクタ |
-| `mapping` | サイドバーのテキスト → ディレクトリ名 |
-| `toolbar` | ツールバーボタンのテキスト → ディレクトリ名 |
-| `ignore` | 除外するディレクトリ名 |
+### links
+
+クリック時の遷移先を定義するルール。
+
+| フィールド | 説明                                  |
+| ---------- | ------------------------------------- |
+| `selector` | CSSセレクタ                           |
+| `match`    | `text`（デフォルト）, `title`, `auto` |
+| `mapping`  | テキスト → ページID                   |
+| `target`   | 固定の遷移先                          |
+
+マッピングがなければテキストを自動変換（`Cherry-pick` → `cherry-pick`）。
+
+### modals / close
+
+モーダルページと閉じるボタンの定義。閉じるボタンは最後に訪れた非モーダルページに遷移。
+
+```json
+{
+  "modals": ["tags", "branches-dialog"],
+  "close": [".modal-close"]
+}
+```
+
+### ignore
+
+ページ検出から除外するディレクトリ名。
 
 ## 仕組み
 
-各 `index.html` の `</body>` 直前に `<script data-connect>` を挿入します。このスクリプトがサイドバーやツールバーのクリックイベントを処理し、対応するページへ遷移させます。
+各 `index.html` の `</body>` 直前に `<script data-connect>` を挿入します。このスクリプトがクリックイベントを処理し、対応するページへ遷移させます。
 
 再実行時は既存のスクリプトを自動で置き換えます。
